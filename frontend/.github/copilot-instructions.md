@@ -1,0 +1,7 @@
+- [x] Scaffold the Project
+  - Projeto Next.js criado com JavaScript, ESLint, Tailwind CSS, App Router e estrutura src/.
+- [ ] Customize the Project
+- [ ] Compile the Project
+- [ ] Create and Run Task
+- [ ] Launch the Project
+- [ ] Ensure Documentation is Complete

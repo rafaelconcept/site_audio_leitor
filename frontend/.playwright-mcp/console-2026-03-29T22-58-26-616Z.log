@@ -1,0 +1,29 @@
+[     526ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://wtr-lab.com/assets/favicon/site.webmanifest:0
+[     526ms] [ERROR] Manifest fetch from https://wtr-lab.com/assets/favicon/site.webmanifest failed, code 403 @ https://wtr-lab.com/en/novel/58315/global-gray-rain-awakening-plant-control-at-the-start/chapter-3:0
+[     666ms] [WARNING] Specifying 'overflow: visible' on img, video and canvas tags may cause them to produce visual content outside of the element bounds. See https://github.com/WICG/view-transitions/blob/main/debugging_overflow_on_images.md for details. @ https://wtr-lab.com/en/novel/58315/global-gray-rain-awakening-plant-control-at-the-start/chapter-3:0
+[     690ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://rk.prinkitonama.com/rXlGlP467POdguhu/elXqr:0
+[     761ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://wtr-lab.com/assets/favicon/site.webmanifest:0
+[     761ms] [ERROR] Manifest fetch from https://wtr-lab.com/assets/favicon/site.webmanifest failed, code 403 @ https://wtr-lab.com/en/novel/58315/global-gray-rain-awakening-plant-control-at-the-start/chapter-3:0
+[     818ms] [WARNING] galaksion ad script failed to load - possible ad blocker @ https://wtr-lab.com/_next/static/chunks/280f9b6334fce167.js:2
+[     959ms] [WARNING] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. @ https://wtr-lab.com/ads/pubfuture.html?v=v1.12.1:0
+[     969ms] [WARNING] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. @ https://wtr-lab.com/ads/pubadx.html?v=v1.12.1&wu=https%3A%2F%2Fwtr-lab.com%2Fen%2Fnovel%2F58315%2Fglobal-gray-rain-awakening-plant-control-at-the-start%2Fchapter-3:0
+[    1041ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://cdn.pubfuture-ad.com/v2/unit/pt.js:0
+[    1065ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://platform.pubadx.one/pubadx-ad.js:0
+[   40744ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://wtr-lab.com/assets/favicon/site.webmanifest:0
+[45334783ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://cdn.pubfuture-ad.com/v2/unit/pt.js:0
+[45335031ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://securepubads.g.doubleclick.net/pagead/managed/dict/m202603260101/gpt:0
+[45335576ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://cdn.jsdelivr.net/gh/prebid/shared-id/pubcid.js/docs/pubcid.min.js:0
+[45335580ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://ads.pubmatic.com/AdServer/js/google-esp.js:0
+[45335580ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://tags.crwdcntrl.net/lt/c/16589/sync.min.js:0
+[45335580ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://invstatic101.creativecdn.com/encrypted-signals/encrypted-tag-g.js:0
+[45335697ms] [WARNING] [GPT] Using deprecated googletag.encryptedSignalProviders. Please use googletag.secureSignalProviders instead.
+https://goo.gle/gpt-message#155 @ https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603230101/pubads_impl.js?cb=31097408:18
+[45335729ms] [WARNING] [GPT] Using deprecated googletag.encryptedSignalProviders. Please use googletag.secureSignalProviders instead.
+https://goo.gle/gpt-message#155 @ https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603230101/pubads_impl.js?cb=31097408:18
+[45335730ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://id5-sync.com/api/esp/increment?counter=no-config:0
+[45336046ms] [WARNING] [GPT] Using deprecated googletag.encryptedSignalProviders. Please use googletag.secureSignalProviders instead.
+https://goo.gle/gpt-message#155 @ https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603230101/pubads_impl.js?cb=31097408:18
+[45336558ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://pagead2.googlesyndication.com/pagead/ping?e=1:0
+[46167054ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://cdn.pubfuture-ad.com/v2/unit/pt.js:0
+[46167198ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://securepubads.g.doubleclick.net/pagead/managed/dict/m202603260101/gpt:0
+[46168472ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_CLIENT @ https://pagead2.googlesyndication.com/pagead/ping?e=1:0
