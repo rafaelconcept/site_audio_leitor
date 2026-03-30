@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
@@ -23,6 +24,20 @@ export default function RootLayout({ children }) {
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-7LPWY8TSZ2"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-7LPWY8TSZ2');
+          `}
+        </Script>
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-white">
         <nav className="w-full border-b border-zinc-800 bg-zinc-900 px-4 py-3 flex gap-6 items-center">
           <Link href="/" className="font-semibold hover:text-blue-400 transition">

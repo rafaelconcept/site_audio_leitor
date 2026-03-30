@@ -236,7 +236,14 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
                   isActive ? 'bg-blue-100 text-black' : isBookmark ? 'bg-zinc-600 text-white ring-1 ring-blue-400' : 'hover:bg-zinc-700',
                 ].join(' ')}
               >
-                <span data-seg-idx={idx}>{seg.text}</span>
+                <span
+                  data-seg-idx={idx}
+                  // dangerouslySetInnerHTML prevents React from diffing text nodes
+                  // that Google Translate may have wrapped in <font> elements,
+                  // avoiding the "removeChild" NotFoundError on re-render.
+                  // Safe: seg.text comes from textContent (no HTML tags).
+                  dangerouslySetInnerHTML={{ __html: seg.text }}
+                />
               </p>
 
               {/* Badge de link — navega dentro do próprio leitor */}
