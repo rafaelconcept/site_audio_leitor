@@ -38,16 +38,27 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
 
   // Auto-scroll ao mudar parágrafo durante leitura
   useEffect(() => {
-    if (activeElementRef.current) {
-      activeElementRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    const el = activeElementRef.current;
+    if (!el) return;
+    // rAF garante que o paint aconteceu e getBoundingClientRect é preciso
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const centerY = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
+      window.scrollTo({ top: Math.max(0, centerY), behavior: 'smooth' });
+    });
   }, [currentIdx]);
 
   // Scroll para o ponto de retomada na montagem
   useEffect(() => {
     if (initialIdx > 0) {
       setTimeout(() => {
-        activeElementRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const el = activeElementRef.current;
+        if (!el) return;
+        requestAnimationFrame(() => {
+          const rect = el.getBoundingClientRect();
+          const centerY = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
+          window.scrollTo({ top: Math.max(0, centerY), behavior: 'smooth' });
+        });
       }, 300);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
