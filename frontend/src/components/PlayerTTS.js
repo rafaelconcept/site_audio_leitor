@@ -31,6 +31,8 @@ export default function PlayerTTS({ text, voiceURI }) {
   const activeElementRef = useRef(null);
   const [tooltipIdx, setTooltipIdx] = useState(null); // índice do item com tooltip aberto
   const tooltipRef = useRef(null);
+  const sentenceListRef = useRef(null);
+  const desktopTextRef = useRef(null);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -136,7 +138,9 @@ export default function PlayerTTS({ text, voiceURI }) {
     window.speechSynthesis.cancel();
 
     const chunks = mobileSentencesRef.current;
-    const sentence = chunks[sIdx];
+    // Lê do DOM para capturar texto traduzido pelo browser translator
+    const domEl = sentenceListRef.current?.querySelector(`[data-seg-idx="${sIdx}"]`);
+    const sentence = domEl?.textContent?.trim() || chunks[sIdx];
     if (!sentence) { advanceSentence(sIdx); return; }
 
     // Pequeno delay após cancel() — necessário no iOS para evitar silêncio
@@ -214,7 +218,9 @@ export default function PlayerTTS({ text, voiceURI }) {
       return;
     }
     if (utteranceRef.current) window.speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(text);
+    // Lê do DOM para capturar texto traduzido pelo browser translator
+    const domText = desktopTextRef.current?.textContent?.trim() || text;
+    const utterance = new window.SpeechSynthesisUtterance(domText);
     if (voiceURI) {
       const voices = window.speechSynthesis.getVoices();
       const selected = voices.find(v => v.voiceURI === voiceURI);
@@ -228,13 +234,13 @@ export default function PlayerTTS({ text, voiceURI }) {
           for (let w = 0; w < paragraphs[p].length && !found; w++) {
             const word = paragraphs[p][w];
             if (!word) continue;
-            const idx = text.indexOf(word, charCount);
+            const idx = domText.indexOf(word, charCount);
             if (idx !== -1 && event.charIndex >= idx && event.charIndex < idx + word.length) {
               const globalIdx = paragraphs.slice(0, p).reduce((acc, arr) => acc + arr.length, 0) + w;
               setCurrentWord(globalIdx);
               found = true;
             }
-            charCount = idx + word.length;
+            charCount = idx + 1;
           }
         }
       }
@@ -296,7 +302,14 @@ export default function PlayerTTS({ text, voiceURI }) {
       return;
     }
     if (utteranceRef.current) window.speechSynthesis.cancel();
-    const textToRead = allWords.slice(startIdx).join(' ');
+    // Lê do DOM para capturar texto traduzido pelo browser translator
+    const spans = desktopTextRef.current?.querySelectorAll('[data-word-idx]');
+    let textToRead;
+    if (spans && spans.length > 0) {
+      textToRead = Array.from(spans).slice(startIdx).map(s => s.textContent).join(' ');
+    } else {
+      textToRead = allWords.slice(startIdx).join(' ');
+    }
     if (!textToRead.trim()) return;
     const utterance = new window.SpeechSynthesisUtterance(textToRead);
     if (voiceURI) {
@@ -381,7 +394,7 @@ export default function PlayerTTS({ text, voiceURI }) {
       </div>
       <div className="text-lg space-y-2 w-full">
         {isMobileDevice
-          ? mobileSentencesLive.map((sentence, idx) => (
+          ? <div ref={sentenceListRef} className="space-y-2 w-full">{mobileSentencesLive.map((sentence, idx) => (
               <div key={idx} className="relative">
                 <p
                   ref={idx === mobileSentenceIdx && isPlaying ? activeElementRef : null}
@@ -391,7 +404,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                     'cursor-pointer rounded px-2 py-1 select-none',
                     idx === mobileSentenceIdx && isPlaying ? 'bg-blue-100 text-black' : 'hover:bg-zinc-700'
                   ].join(' ')}
-                >{sentence}</p>
+                ><span data-seg-idx={idx} dangerouslySetInnerHTML={{ __html: sentence }} /></p>
                 {tooltipIdx === idx && (
                   <div ref={tooltipRef} className="absolute left-0 z-10 mt-1 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2">
                     <span className="text-sm text-zinc-300">Ler daqui?</span>
@@ -402,8 +415,8 @@ export default function PlayerTTS({ text, voiceURI }) {
                   </div>
                 )}
               </div>
-            ))
-          : paragraphs.map((words, pIdx) => (
+            ))}</div>
+          : <div ref={desktopTextRef}>{paragraphs.map((words, pIdx) => (
               <p key={pIdx} className="flex flex-wrap">
                 {words.map((word, wIdx) => {
                   const globalIdx = paragraphs.slice(0, pIdx).reduce((acc, arr) => acc + arr.length, 0) + wIdx;
@@ -414,6 +427,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                       ref={isActive ? activeElementRef : null}
                       onClick={() => setTooltipIdx(tooltipIdx === globalIdx ? null : globalIdx)}
                       data-tooltip-trigger
+                      data-word-idx={globalIdx}
                       style={isActive ? { backgroundColor: '#a3c9f9', color: '#222', borderRadius: '0.25rem', padding: '0 0.25rem' } : {}}
                       className="cursor-pointer hover:underline relative"
                     >
@@ -431,7 +445,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                   );
                 })}
               </p>
-            ))}
+            ))}</div>
       </div>
 
       {feedback && (
