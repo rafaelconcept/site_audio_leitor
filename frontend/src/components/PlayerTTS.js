@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useRef, useState, useEffect } from 'react';
 
 function isMobile() {
@@ -18,7 +18,7 @@ export default function PlayerTTS({ text, voiceURI }) {
     setIsMobileDevice(isMobile());
   }, []);
 
-  // Todas as refs necessárias
+  // Todas as refs necessÃ¡rias
   const isPlayingRef = useRef(false);
   const isPausedRef = useRef(false);
   const currentSentenceIdxRef = useRef(0);
@@ -29,14 +29,26 @@ export default function PlayerTTS({ text, voiceURI }) {
   const voiceURIRef = useRef(voiceURI);
   const speakGenRef = useRef(0); // previne chains concorrentes de doSpeak
   const activeElementRef = useRef(null);
-  const [tooltipIdx, setTooltipIdx] = useState(null); // índice do item com tooltip aberto
+  const [tooltipIdx, setTooltipIdx] = useState(null); // Ã­ndice do item com tooltip aberto
   const tooltipRef = useRef(null);
   const sentenceListRef = useRef(null);
   const desktopTextRef = useRef(null);
+  const preferDomRef = useRef(null); // null = unknown, true = dom (translated), false = original
+  const playbackUseDomRef = useRef(null);
+  const playbackChunksRef = useRef([]);
+  const playbackTextRef = useRef('');
+  const playbackWordsRef = useRef([]);
+  const enableBoundaryRef = useRef(true);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   useEffect(() => { voiceURIRef.current = voiceURI; }, [voiceURI]);
+  useEffect(() => {
+    preferDomRef.current = null;
+    playbackChunksRef.current = [];
+    playbackTextRef.current = '';
+    playbackWordsRef.current = [];
+  }, [text]);
 
   // Auto-scroll: rola suavemente para o elemento ativo
   useEffect(() => {
@@ -71,7 +83,7 @@ export default function PlayerTTS({ text, voiceURI }) {
       setIsPlaying(true);
       setIsPaused(false);
       startWatchdog();
-      doSpeak(idx);
+      ensurePlaybackSource(() => doSpeak(idx));
     } else {
       setCurrentWord(idx);
       speakFromIndex(idx);
@@ -79,10 +91,10 @@ export default function PlayerTTS({ text, voiceURI }) {
   };
 
   function splitMobileChunks(txt) {
-    // Divide apenas em quebras naturais: fim de frase ou parágrafo
-    // Sem limite de caracteres — mantém o fluxo natural da fala
+    // Divide apenas em quebras naturais: fim de frase ou parÃ¡grafo
+    // Sem limite de caracteres â€” mantÃ©m o fluxo natural da fala
     const chunks = txt
-      .split(/(?<=[.!?。！？])\s+|\n+/)
+      .split(/(?<=[.!?ã€‚ï¼ï¼Ÿ])\s+|\n+/)
       .map(s => s.trim())
       .filter(Boolean);
     return chunks.length > 0 ? chunks : [txt.trim()];
@@ -114,7 +126,18 @@ export default function PlayerTTS({ text, voiceURI }) {
     }
   };
 
-  // Avança para a próxima frase (ou finaliza)
+  const normalizeText = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
+  const decidePreferDom = (domText, originalText) => {
+    if (preferDomRef.current !== null) return preferDomRef.current;
+    const d = normalizeText(domText);
+    const o = normalizeText(originalText);
+    // If DOM differs from original, assume translation is active and stick to DOM.
+    preferDomRef.current = d && o ? d !== o : !!d;
+    return preferDomRef.current;
+  };
+
+  // AvanÃ§a para a prÃ³xima frase (ou finaliza)
   const advanceSentence = (sIdx) => {
     const chunks = mobileSentencesRef.current;
     if (sIdx < chunks.length - 1) {
@@ -132,21 +155,67 @@ export default function PlayerTTS({ text, voiceURI }) {
     }
   };
 
-  // Função central de fala — usa apenas refs, zero stale closure
+  const buildDomChunks = () => {
+    const nodes = sentenceListRef.current?.querySelectorAll('[data-seg-idx]');
+    if (!nodes || nodes.length === 0) return [];
+    return Array.from(nodes).map(n => (n.textContent || '').trim());
+  };
+
+  const preparePlaybackSource = () => {
+    if (isMobileDevice) {
+      const domChunks = buildDomChunks();
+      const domJoined = domChunks.join(' ');
+      const originalJoined = mobileSentencesRef.current.join(' ');
+      const useDom = decidePreferDom(domJoined, originalJoined);
+      playbackUseDomRef.current = useDom;
+      enableBoundaryRef.current = !useDom;
+      if (useDom && domChunks.length > 0) {
+        playbackChunksRef.current = domChunks;
+        return !domChunks.some(c => !c);
+      }
+      playbackChunksRef.current = mobileSentencesRef.current;
+      return true;
+    }
+
+    const spans = desktopTextRef.current?.querySelectorAll('[data-word-idx]');
+    const domWords = spans && spans.length > 0
+      ? Array.from(spans).map(s => (s.textContent || '').trim())
+      : [];
+    const domText = domWords.length > 0 ? domWords.join(' ') : (desktopTextRef.current?.textContent?.trim() || '');
+    const useDom = decidePreferDom(domText, text);
+    playbackUseDomRef.current = useDom;
+    enableBoundaryRef.current = !useDom;
+    playbackWordsRef.current = useDom && domWords.length > 0 ? domWords : allWords;
+    playbackTextRef.current = playbackWordsRef.current.join(' ');
+    return !useDom || !!domText;
+  };
+
+  const ensurePlaybackSource = (onReady) => {
+    const ready = preparePlaybackSource();
+    if (ready) { onReady(); return; }
+    setTimeout(() => {
+      preparePlaybackSource();
+      onReady();
+    }, 250);
+  };
+  // FunÃ§Ã£o central de fala â€” usa apenas refs, zero stale closure
   const doSpeak = (sIdx) => {
-    const gen = ++speakGenRef.current; // cada chamada tem geração única
+    const gen = ++speakGenRef.current; // cada chamada tem geraÃ§Ã£o Ãºnica
     window.speechSynthesis.cancel();
 
-    const chunks = mobileSentencesRef.current;
-    // Lê do DOM para capturar texto traduzido pelo browser translator
-    const domEl = sentenceListRef.current?.querySelector(`[data-seg-idx="${sIdx}"]`);
-    const sentence = domEl?.textContent?.trim() || chunks[sIdx];
-    if (!sentence) { advanceSentence(sIdx); return; }
-
-    // Pequeno delay após cancel() — necessário no iOS para evitar silêncio
+    // Pequeno delay apÃ³s cancel() â€” necessÃ¡rio no iOS para evitar silÃªncio.
+    // DOM Ã© lido DENTRO do timeout para capturar texto jÃ¡ traduzido pelo browser:
+    // neste ponto o React jÃ¡ re-renderizou, o scroll jÃ¡ ocorreu e o tradutor
+    // jÃ¡ teve tempo de processar o segmento que entrou na viewport.
     setTimeout(() => {
-      if (gen !== speakGenRef.current) return; // chamada obsoleta — ignorar
+      if (gen !== speakGenRef.current) return; // chamada obsoleta â€” ignorar
       if (!isPlayingRef.current || isPausedRef.current) return;
+
+      const chunks = playbackChunksRef.current && playbackChunksRef.current.length > 0
+        ? playbackChunksRef.current
+        : mobileSentencesRef.current;
+      const sentence = chunks[sIdx] || '';
+      if (!sentence) { advanceSentence(sIdx); return; }
 
       const utterance = new window.SpeechSynthesisUtterance(sentence);
       utterance.rate = 1;
@@ -182,7 +251,7 @@ export default function PlayerTTS({ text, voiceURI }) {
   };
 
   // Watchdog: detecta quando a fala parou sem acionar onend (bug iOS/Android)
-  // NÃO faz pause/resume enquanto a fala está ativa — isso interrompe o speech no iOS
+  // NÃƒO faz pause/resume enquanto a fala estÃ¡ ativa â€” isso interrompe o speech no iOS
   const startWatchdog = () => {
     stopWatchdog();
     watchdogRef.current = setInterval(() => {
@@ -191,8 +260,8 @@ export default function PlayerTTS({ text, voiceURI }) {
       const synth = window.speechSynthesis;
       const elapsed = Date.now() - speakStartedAtRef.current;
 
-      // Detecção de travamento: fala parou silenciosamente sem disparar onend
-      // Aguarda pelo menos 8s para não confundir com pausas naturais entre chunks
+      // DetecÃ§Ã£o de travamento: fala parou silenciosamente sem disparar onend
+      // Aguarda pelo menos 8s para nÃ£o confundir com pausas naturais entre chunks
       if (
         elapsed > 8000 &&
         !onendFiredRef.current &&
@@ -214,51 +283,54 @@ export default function PlayerTTS({ text, voiceURI }) {
       setIsPaused(false);
       setMobileSentenceIdx(0);
       startWatchdog();
-      doSpeak(0);
+      ensurePlaybackSource(() => doSpeak(0));
       return;
     }
     if (utteranceRef.current) window.speechSynthesis.cancel();
-    // Lê do DOM para capturar texto traduzido pelo browser translator
-    const domText = desktopTextRef.current?.textContent?.trim() || text;
-    const utterance = new window.SpeechSynthesisUtterance(domText);
-    if (voiceURI) {
-      const voices = window.speechSynthesis.getVoices();
-      const selected = voices.find(v => v.voiceURI === voiceURI);
-      if (selected) utterance.voice = selected;
-    }
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        let charCount = 0;
-        let found = false;
-        for (let p = 0; p < paragraphs.length && !found; p++) {
-          for (let w = 0; w < paragraphs[p].length && !found; w++) {
-            const word = paragraphs[p][w];
-            if (!word) continue;
-            const idx = domText.indexOf(word, charCount);
-            if (idx !== -1 && event.charIndex >= idx && event.charIndex < idx + word.length) {
-              const globalIdx = paragraphs.slice(0, p).reduce((acc, arr) => acc + arr.length, 0) + w;
-              setCurrentWord(globalIdx);
-              found = true;
-            }
-            charCount = idx + 1;
-          }
-        }
+    ensurePlaybackSource(() => {
+      const textToRead = playbackTextRef.current || text;
+      const utterance = new window.SpeechSynthesisUtterance(textToRead);
+      if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selected = voices.find(v => v.voiceURI === voiceURI);
+        if (selected) utterance.voice = selected;
       }
-    };
-    utterance.onend = () => { setIsPlaying(false); setIsPaused(false); };
-    utterance.onerror = () => { setFeedback("Falha ao iniciar leitura. Tente novamente."); setIsPlaying(false); };
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true);
-    setIsPaused(false);
-    setFeedback("");
+      if (enableBoundaryRef.current) {
+        utterance.onboundary = (event) => {
+          if (event.name === 'word') {
+            let charCount = 0;
+            let found = false;
+            for (let p = 0; p < paragraphs.length && !found; p++) {
+              for (let w = 0; w < paragraphs[p].length && !found; w++) {
+                const word = paragraphs[p][w];
+                if (!word) continue;
+                const idx = textToRead.indexOf(word, charCount);
+                if (idx !== -1 && event.charIndex >= idx && event.charIndex < idx + word.length) {
+                  const globalIdx = paragraphs.slice(0, p).reduce((acc, arr) => acc + arr.length, 0) + w;
+                  setCurrentWord(globalIdx);
+                  found = true;
+                }
+                charCount = idx + 1;
+              }
+            }
+          }
+        };
+      }
+      utterance.onend = () => { setIsPlaying(false); setIsPaused(false); };
+      utterance.onerror = () => { setFeedback("Falha ao iniciar leitura. Tente novamente."); setIsPlaying(false); };
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+      setIsPaused(false);
+      setFeedback("");
+    });
   };
 
   const pause = () => {
     isPausedRef.current = true;
     setIsPaused(true);
     if (isMobileDevice) {
-      // No mobile, parar mesmo (pause é bugado no iOS)
+      // No mobile, parar mesmo (pause Ã© bugado no iOS)
       window.speechSynthesis.cancel();
     } else {
       window.speechSynthesis.pause();
@@ -290,7 +362,7 @@ export default function PlayerTTS({ text, voiceURI }) {
   const totalWords = allWords.length;
   const status = isPlaying ? (isPaused ? 'Paused' : 'Reading') : 'Stopped';
 
-  // Função para ler a partir de um índice específico (desktop)
+  // FunÃ§Ã£o para ler a partir de um Ã­ndice especÃ­fico (desktop)
   const speakFromIndex = (startIdx) => {
     if (isMobileDevice) {
       isPlayingRef.current = true;
@@ -302,57 +374,57 @@ export default function PlayerTTS({ text, voiceURI }) {
       return;
     }
     if (utteranceRef.current) window.speechSynthesis.cancel();
-    // Lê do DOM para capturar texto traduzido pelo browser translator
-    const spans = desktopTextRef.current?.querySelectorAll('[data-word-idx]');
-    let textToRead;
-    if (spans && spans.length > 0) {
-      textToRead = Array.from(spans).slice(startIdx).map(s => s.textContent).join(' ');
-    } else {
-      textToRead = allWords.slice(startIdx).join(' ');
-    }
-    if (!textToRead.trim()) return;
-    const utterance = new window.SpeechSynthesisUtterance(textToRead);
-    if (voiceURI) {
-      const voices = window.speechSynthesis.getVoices();
-      const selected = voices.find(v => v.voiceURI === voiceURI);
-      if (selected) utterance.voice = selected;
-    }
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        let wordIdx = 0;
-        let charCount = 0;
-        let found = false;
-        for (let p = 0; p < paragraphs.length && !found; p++) {
-          for (let w = 0; w < paragraphs[p].length && !found; w++) {
-            const word = paragraphs[p][w];
-            if (!word) continue;
-            const idx = text.indexOf(word, charCount);
-            if (idx !== -1 && event.charIndex >= idx && event.charIndex < idx + word.length) {
-              setCurrentWord(startIdx + wordIdx);
-              found = true;
-            }
-            charCount = idx + word.length;
-            wordIdx++;
-          }
-        }
+    ensurePlaybackSource(() => {
+      const words = playbackWordsRef.current && playbackWordsRef.current.length > 0
+        ? playbackWordsRef.current
+        : allWords;
+      const textToRead = words.slice(startIdx).join(' ');
+      if (!textToRead.trim()) return;
+      const utterance = new window.SpeechSynthesisUtterance(textToRead);
+      if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selected = voices.find(v => v.voiceURI === voiceURI);
+        if (selected) utterance.voice = selected;
       }
-    };
-    utterance.onend = () => {
-      setIsPlaying(false);
+      if (enableBoundaryRef.current) {
+        utterance.onboundary = (event) => {
+          if (event.name === 'word') {
+            let wordIdx = 0;
+            let charCount = 0;
+            let found = false;
+            for (let p = 0; p < paragraphs.length && !found; p++) {
+              for (let w = 0; w < paragraphs[p].length && !found; w++) {
+                const word = paragraphs[p][w];
+                if (!word) continue;
+                const idx = textToRead.indexOf(word, charCount);
+                if (idx !== -1 && event.charIndex >= idx && event.charIndex < idx + word.length) {
+                  setCurrentWord(startIdx + wordIdx);
+                  found = true;
+                }
+                charCount = idx + word.length;
+                wordIdx++;
+              }
+            }
+          }
+        };
+      }
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      utterance.onerror = () => {
+        setFeedback("Falha ao iniciar leitura. Tente novamente.");
+        setIsPlaying(false);
+      };
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
       setIsPaused(false);
-    };
-    utterance.onerror = () => {
-      setFeedback("Falha ao iniciar leitura. Tente novamente.");
-      setIsPlaying(false);
-    };
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true);
-    setIsPaused(false);
-    setFeedback("");
+      setFeedback("");
+    });
   };
 
-  // Handlers para avançar/voltar
+  // Handlers para avanÃ§ar/voltar
   const handlePrev = () => {
     const newIdx = Math.max(currentWord - 1, 0);
     setCurrentWord(newIdx);
@@ -380,7 +452,7 @@ export default function PlayerTTS({ text, voiceURI }) {
           {status} {isPlaying ? `${currentWord + 1}/${totalWords}` : ''}
         </span>
       </div>
-      {/* Controles inline — só visíveis no desktop; no mobile o FAB substitui */}
+      {/* Controles inline â€” sÃ³ visÃ­veis no desktop; no mobile o FAB substitui */}
       <div className="hidden md:flex items-center gap-2 w-full justify-center">
         {isPlaying && !isPaused ? (
           <button onClick={pause} className="rounded bg-yellow-400 hover:bg-yellow-500 p-2 text-black text-2xl w-12 h-12 flex items-center justify-center">&#10073;&#10073;</button>
@@ -445,7 +517,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                   );
                 })}
               </p>
-            ))}</div>
+            ))}</div>}
       </div>
 
       {feedback && (
@@ -497,3 +569,9 @@ export default function PlayerTTS({ text, voiceURI }) {
     </div>
   );
 }
+
+
+
+
+
+

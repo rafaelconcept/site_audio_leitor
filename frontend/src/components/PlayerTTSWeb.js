@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useRef, useState, useEffect } from 'react';
 
 function isMobile() {
@@ -30,17 +30,20 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const activeElementRef = useRef(null);
   const tooltipRef = useRef(null);
   const segListRef = useRef(null);
+  const preferDomRef = useRef(null); // null = unknown, true = dom (translated), false = original
+  const playbackSegmentsRef = useRef([]);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   useEffect(() => { voiceURIRef.current = voiceURI; }, [voiceURI]);
   useEffect(() => { segmentsRef.current = segments; }, [segments]);
+  useEffect(() => { preferDomRef.current = null; playbackSegmentsRef.current = []; }, [segments]);
 
-  // Auto-scroll ao mudar parágrafo durante leitura
+  // Auto-scroll ao mudar parÃ¡grafo durante leitura
   useEffect(() => {
     const el = activeElementRef.current;
     if (!el) return;
-    // rAF garante que o paint aconteceu e getBoundingClientRect é preciso
+    // rAF garante que o paint aconteceu e getBoundingClientRect Ã© preciso
     requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect();
       const centerY = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
@@ -84,6 +87,17 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     if (watchdogRef.current) { clearInterval(watchdogRef.current); watchdogRef.current = null; }
   };
 
+  const normalizeText = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
+  const decidePreferDom = (domText, originalText) => {
+    if (preferDomRef.current !== null) return preferDomRef.current;
+    const d = normalizeText(domText);
+    const o = normalizeText(originalText);
+    // If DOM differs from original, assume translation is active and stick to DOM.
+    preferDomRef.current = d && o ? d !== o : !!d;
+    return preferDomRef.current;
+  };
+
   const advanceSentence = (sIdx) => {
     const segs = segmentsRef.current;
     if (sIdx < segs.length - 1) {
@@ -102,19 +116,49 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     }
   };
 
+  const buildDomSegments = () => {
+    const nodes = segListRef.current?.querySelectorAll('[data-seg-idx]');
+    if (!nodes || nodes.length === 0) return [];
+    return Array.from(nodes).map(n => (n.textContent || '').trim());
+  };
+
+  const preparePlaybackSegments = () => {
+    const domSegs = buildDomSegments();
+    const domJoined = domSegs.join(' ');
+    const originalJoined = segmentsRef.current.map(s => s.text).join(' ');
+    const useDom = decidePreferDom(domJoined, originalJoined);
+    if (useDom && domSegs.length > 0) {
+      playbackSegmentsRef.current = domSegs;
+      return !domSegs.some(s => !s);
+    }
+    playbackSegmentsRef.current = segmentsRef.current.map(s => s.text);
+    return true;
+  };
+
+  const ensurePlaybackSegments = (onReady) => {
+    const ready = preparePlaybackSegments();
+    if (ready) { onReady(); return; }
+    setTimeout(() => {
+      preparePlaybackSegments();
+      onReady();
+    }, 250);
+  };
   const doSpeak = (sIdx) => {
     const gen = ++speakGenRef.current;
     window.speechSynthesis.cancel();
 
-    const segs = segmentsRef.current;
-    // Lê do DOM para capturar texto traduzido pelo browser translator
-    const domEl = segListRef.current?.querySelector(`[data-seg-idx="${sIdx}"]`);
-    const sentence = domEl?.textContent?.trim() || segs[sIdx]?.text;
-    if (!sentence) { advanceSentence(sIdx); return; }
-
+    // DOM Ã© lido DENTRO do timeout para capturar texto jÃ¡ traduzido pelo browser:
+    // neste ponto o React jÃ¡ re-renderizou, o scroll jÃ¡ ocorreu e o tradutor
+    // jÃ¡ teve tempo de processar o segmento que entrou na viewport.
     setTimeout(() => {
       if (gen !== speakGenRef.current) return;
       if (!isPlayingRef.current || isPausedRef.current) return;
+
+      const segs = playbackSegmentsRef.current && playbackSegmentsRef.current.length > 0
+        ? playbackSegmentsRef.current
+        : segmentsRef.current.map(s => s.text);
+      const sentence = segs[sIdx] || '';
+      if (!sentence) { advanceSentence(sIdx); return; }
 
       const utterance = new window.SpeechSynthesisUtterance(sentence);
       utterance.rate = 1;
@@ -170,7 +214,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     setIsPlaying(true);
     setIsPaused(false);
     startWatchdog();
-    doSpeak(fromIdx);
+    ensurePlaybackSegments(() => doSpeak(fromIdx));
   };
 
   const pause = () => {
@@ -218,7 +262,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
         </span>
       </div>
 
-      {/* Controles inline — desktop */}
+      {/* Controles inline â€” desktop */}
       <div className="hidden md:flex items-center gap-2 w-full justify-center">
         {isPlaying && !isPaused ? (
           <button onClick={pause} className="rounded bg-yellow-400 hover:bg-yellow-500 p-2 text-black text-2xl w-12 h-12 flex items-center justify-center">&#10073;&#10073;</button>
@@ -257,14 +301,14 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
                 />
               </p>
 
-              {/* Badge de link — navega dentro do próprio leitor */}
+              {/* Badge de link â€” navega dentro do prÃ³prio leitor */}
               {seg.href && (
                 <button
                   onClick={e => { e.stopPropagation(); onNavigate && onNavigate(seg.href); }}
                   className="shrink-0 text-xs px-2 py-0.5 rounded bg-zinc-600 hover:bg-blue-600 text-zinc-200 hover:text-white transition whitespace-nowrap"
                   title={seg.href}
                 >
-                  ↗ link
+                  â†— link
                 </button>
               )}
 
@@ -304,13 +348,13 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       {isMobileDevice ? (
         <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
           {!isPlaying && !isPaused ? (
-            /* Antes de tocar: só botão play simples */
+            /* Antes de tocar: sÃ³ botÃ£o play simples */
             <button
               onClick={() => play(currentIdx)}
               className="w-14 h-14 rounded-full bg-green-500 shadow-lg text-white text-2xl flex items-center justify-center"
             >&#9654;</button>
           ) : (
-            /* Durante/pausado: seta expansível com pause/resume + stop */
+            /* Durante/pausado: seta expansÃ­vel com pause/resume + stop */
             <>
               {fabOpen && (
                 <div className="flex flex-col items-end gap-2">
@@ -349,3 +393,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     </div>
   );
 }
+
+
+
+
