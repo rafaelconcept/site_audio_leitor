@@ -32,6 +32,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const segListRef = useRef(null);
   const preferDomRef = useRef(null); // null = unknown, true = dom (translated), false = original
   const playbackSegmentsRef = useRef([]);
+  const lastScrollTsRef = useRef(0);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -39,29 +40,41 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   useEffect(() => { segmentsRef.current = segments; }, [segments]);
   useEffect(() => { preferDomRef.current = null; playbackSegmentsRef.current = []; }, [segments]);
 
-  // Auto-scroll ao mudar parÃ¡grafo durante leitura
-  useEffect(() => {
+  const scrollActiveToCenter = (force = false) => {
     const el = activeElementRef.current;
     if (!el) return;
-    // rAF garante que o paint aconteceu e getBoundingClientRect Ã© preciso
-    requestAnimationFrame(() => {
+    const doScroll = () => {
       const rect = el.getBoundingClientRect();
-      const centerY = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
-      window.scrollTo({ top: Math.max(0, centerY), behavior: 'smooth' });
-    });
+      const target = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
+      const distance = Math.abs(target - window.scrollY);
+      const now = Date.now();
+      const tooFrequent = now - lastScrollTsRef.current < 300;
+      const useInstant =
+        force ||
+        isMobileDevice ||
+        distance > window.innerHeight * 0.8 ||
+        tooFrequent;
+      const behavior = useInstant ? 'auto' : 'smooth';
+      if (typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior, block: 'center' });
+      } else {
+        window.scrollTo({ top: Math.max(0, target), behavior });
+      }
+      lastScrollTsRef.current = now;
+    };
+    requestAnimationFrame(() => requestAnimationFrame(doScroll));
+  };
+
+  // Auto-scroll ao mudar parÃ¡grafo durante leitura
+  useEffect(() => {
+    scrollActiveToCenter(false);
   }, [currentIdx]);
 
   // Scroll para o ponto de retomada na montagem
   useEffect(() => {
     if (initialIdx > 0) {
       setTimeout(() => {
-        const el = activeElementRef.current;
-        if (!el) return;
-        requestAnimationFrame(() => {
-          const rect = el.getBoundingClientRect();
-          const centerY = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
-          window.scrollTo({ top: Math.max(0, centerY), behavior: 'smooth' });
-        });
+        scrollActiveToCenter(true);
       }, 300);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

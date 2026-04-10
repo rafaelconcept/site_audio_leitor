@@ -39,6 +39,7 @@ export default function PlayerTTS({ text, voiceURI }) {
   const playbackTextRef = useRef('');
   const playbackWordsRef = useRef([]);
   const enableBoundaryRef = useRef(true);
+  const lastScrollTsRef = useRef(0);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -50,11 +51,34 @@ export default function PlayerTTS({ text, voiceURI }) {
     playbackWordsRef.current = [];
   }, [text]);
 
+  const scrollActiveToCenter = (force = false) => {
+    const el = activeElementRef.current;
+    if (!el) return;
+    const doScroll = () => {
+      const rect = el.getBoundingClientRect();
+      const target = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
+      const distance = Math.abs(target - window.scrollY);
+      const now = Date.now();
+      const tooFrequent = now - lastScrollTsRef.current < 300;
+      const useInstant =
+        force ||
+        isMobileDevice ||
+        distance > window.innerHeight * 0.8 ||
+        tooFrequent;
+      const behavior = useInstant ? 'auto' : 'smooth';
+      if (typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior, block: 'center' });
+      } else {
+        window.scrollTo({ top: Math.max(0, target), behavior });
+      }
+      lastScrollTsRef.current = now;
+    };
+    requestAnimationFrame(() => requestAnimationFrame(doScroll));
+  };
+
   // Auto-scroll: rola suavemente para o elemento ativo
   useEffect(() => {
-    if (activeElementRef.current) {
-      activeElementRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    scrollActiveToCenter(false);
   }, [mobileSentenceIdx, currentWord]);
 
   // Fecha tooltip ao clicar fora
