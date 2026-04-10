@@ -596,10 +596,17 @@ export default function PlayerTTS({ text, voiceURI }) {
 
 const SegmentText = memo(
   function SegmentText({ html, idx }) {
+    const spanRef = useRef(null);
+    useEffect(() => {
+      if (spanRef.current) {
+        spanRef.current.innerHTML = html || '';
+      }
+    }, [html]);
     return (
       <span
+        ref={spanRef}
         data-seg-idx={idx}
-        dangerouslySetInnerHTML={{ __html: html }}
+        suppressHydrationWarning
       />
     );
   },

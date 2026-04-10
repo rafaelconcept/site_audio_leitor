@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Audio Leitor Online",
-  description: "Leitor de texto e sites com síntese de voz",
+  description: "Leitor de texto e sites com sintese de voz",
 };
 
 export default function RootLayout({ children }) {
@@ -41,10 +41,13 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col bg-zinc-950 text-white">
         <nav className="w-full border-b border-zinc-800 bg-zinc-900 px-4 py-3 flex gap-6 items-center">
           <Link href="/" className="font-semibold hover:text-blue-400 transition">
-            📝 Leitor de Texto
+            Inicio
+          </Link>
+          <Link href="/texto" className="font-semibold hover:text-blue-400 transition">
+            Leitor de Texto
           </Link>
           <Link href="/leitor" className="font-semibold hover:text-blue-400 transition">
-            🌐 Leitor de Sites
+            Leitor de Sites
           </Link>
         </nav>
         {children}

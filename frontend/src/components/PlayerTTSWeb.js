@@ -402,11 +402,17 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
 
 const SegmentText = memo(
   function SegmentText({ html, idx }) {
+    const spanRef = useRef(null);
+    useEffect(() => {
+      if (spanRef.current) {
+        spanRef.current.innerHTML = html || '';
+      }
+    }, [html]);
     return (
       <span
+        ref={spanRef}
         data-seg-idx={idx}
-        // Safe: seg.text comes from textContent (no HTML tags).
-        dangerouslySetInnerHTML={{ __html: html }}
+        suppressHydrationWarning
       />
     );
   },

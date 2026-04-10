@@ -1,55 +1,35 @@
-
-
 "use client";
-import { useEffect, useState } from 'react';
-import PlayerTTS from '../components/PlayerTTS';
+import Link from 'next/link';
 
 export default function Home() {
-  const [text, setText] = useState(``);
-  const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      const saved = localStorage.getItem('selectedVoiceURI');
-      const populateVoices = () => {
-        const v = window.speechSynthesis.getVoices();
-        setVoices(v);
-        if (!selectedVoice && v.length > 0) {
-          const match = saved && v.find(voice => voice.voiceURI === saved);
-          setSelectedVoice(match ? match.voiceURI : v[0].voiceURI);
-        }
-      };
-      populateVoices();
-      window.speechSynthesis.onvoiceschanged = populateVoices;
-    }
-  }, [selectedVoice]);
-
-  const handleVoiceChange = (e) => {
-    setSelectedVoice(e.target.value);
-    localStorage.setItem('selectedVoiceURI', e.target.value);
-  };
-
   return (
     <main className="w-full max-w-5xl mx-auto py-10 px-2 md:px-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-6">Audio Leitor Online</h1>
-      <textarea
-        className="w-full border border-zinc-700 bg-zinc-900 text-white rounded p-3 mb-4 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder="Cole ou digite o texto para leitura..."
-      />
-      <div className="mb-6 w-full flex flex-col md:flex-row items-center gap-2 md:gap-4">
-        <label className="font-medium text-zinc-200">Idioma/Voz:</label>
-        <select value={selectedVoice || ''} onChange={handleVoiceChange} className="border border-zinc-700 bg-zinc-800 text-white rounded p-2 w-full md:w-auto focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
-          {voices.map((voice, idx) => (
-            <option key={voice.voiceURI + '-' + idx} value={voice.voiceURI}>
-              {voice.lang} - {voice.name}
-            </option>
-          ))}
-        </select>
+      <h1 className="text-3xl font-bold mb-2">Audio Leitor Online</h1>
+      <p className="text-zinc-400 mb-8 text-center max-w-2xl">
+        Escolha como quer ler: colar texto diretamente ou carregar um site para leitura.
+      </p>
+
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link
+          href="/texto"
+          className="rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 transition p-6 flex flex-col gap-2"
+        >
+          <span className="text-lg font-semibold text-white">Ler Texto</span>
+          <span className="text-sm text-zinc-300">
+            Cole ou digite o texto e ouça a leitura com destaque de palavras.
+          </span>
+        </Link>
+
+        <Link
+          href="/leitor"
+          className="rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 transition p-6 flex flex-col gap-2"
+        >
+          <span className="text-lg font-semibold text-white">Ler Site</span>
+          <span className="text-sm text-zinc-300">
+            Informe a URL para extrair o conteúdo e ouvir a leitura contínua.
+          </span>
+        </Link>
       </div>
-      <PlayerTTS text={text} voiceURI={selectedVoice} />
     </main>
   );
 }
