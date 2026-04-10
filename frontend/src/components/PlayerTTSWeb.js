@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 
 function isMobile() {
   return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
@@ -304,14 +304,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
                   isActive ? 'bg-blue-100 text-black' : isBookmark ? 'bg-zinc-600 text-white ring-1 ring-blue-400' : 'hover:bg-zinc-700',
                 ].join(' ')}
               >
-                <span
-                  data-seg-idx={idx}
-                  // dangerouslySetInnerHTML prevents React from diffing text nodes
-                  // that Google Translate may have wrapped in <font> elements,
-                  // avoiding the "removeChild" NotFoundError on re-render.
-                  // Safe: seg.text comes from textContent (no HTML tags).
-                  dangerouslySetInnerHTML={{ __html: seg.text }}
-                />
+                <SegmentText html={seg.text} idx={idx} />
               </p>
 
               {/* Badge de link â€” navega dentro do prÃ³prio leitor */}
@@ -406,6 +399,19 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     </div>
   );
 }
+
+const SegmentText = memo(
+  function SegmentText({ html, idx }) {
+    return (
+      <span
+        data-seg-idx={idx}
+        // Safe: seg.text comes from textContent (no HTML tags).
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  },
+  (prev, next) => prev.html === next.html && prev.idx === next.idx
+);
 
 
 

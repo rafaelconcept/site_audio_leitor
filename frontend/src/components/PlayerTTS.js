@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 
 function isMobile() {
   return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
@@ -500,7 +500,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                     'cursor-pointer rounded px-2 py-1 select-none',
                     idx === mobileSentenceIdx && isPlaying ? 'bg-blue-100 text-black' : 'hover:bg-zinc-700'
                   ].join(' ')}
-                ><span data-seg-idx={idx} dangerouslySetInnerHTML={{ __html: sentence }} /></p>
+                ><SegmentText html={sentence} idx={idx} /></p>
                 {tooltipIdx === idx && (
                   <div ref={tooltipRef} className="absolute left-0 z-10 mt-1 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2">
                     <span className="text-sm text-zinc-300">Ler daqui?</span>
@@ -593,6 +593,18 @@ export default function PlayerTTS({ text, voiceURI }) {
     </div>
   );
 }
+
+const SegmentText = memo(
+  function SegmentText({ html, idx }) {
+    return (
+      <span
+        data-seg-idx={idx}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  },
+  (prev, next) => prev.html === next.html && prev.idx === next.idx
+);
 
 
 
