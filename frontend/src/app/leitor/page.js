@@ -9,16 +9,37 @@ function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
+function baseKeyForUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (parts.length > 1) {
+      return `${u.origin}/${parts[0]}/${parts[1]}`;
+    }
+    return `${u.origin}${u.pathname}`.replace(/\/+$/, '');
+  } catch {
+    return rawUrl;
+  }
+}
+
 function saveToHistory(url, lastIdx, title) {
-  const history = loadHistory().filter(h => h.url !== url);
-  history.unshift({ url, lastIdx, title: title || url, savedAt: Date.now() });
+  const baseKey = baseKeyForUrl(url);
+  const history = loadHistory().filter(h => (h.baseKey || h.url) !== baseKey && h.url !== url);
+  history.unshift({ url, lastIdx, title: title || url, savedAt: Date.now(), baseKey });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
 }
 
 function updateHistoryIdx(url, lastIdx) {
+  const baseKey = baseKeyForUrl(url);
   const history = loadHistory();
-  const entry = history.find(h => h.url === url);
-  if (entry) { entry.lastIdx = lastIdx; localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
+  const entry = history.find(h => (h.baseKey || h.url) === baseKey || h.url === url);
+  if (entry) {
+    entry.url = url;
+    entry.baseKey = baseKey;
+    entry.lastIdx = lastIdx;
+    entry.savedAt = Date.now();
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
 }
 
 const BLOCK_TAGS = new Set([
