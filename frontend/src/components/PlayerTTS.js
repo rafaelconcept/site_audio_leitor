@@ -1,7 +1,8 @@
 ﻿"use client";
-import { useRef, useState, useEffect, memo } from 'react';
+import { useRef, useState, useEffect, memo, useMemo } from 'react';
 
 function isMobile() {
+  if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 }
 
@@ -11,12 +12,8 @@ export default function PlayerTTS({ text, voiceURI }) {
   const [isPaused, setIsPaused] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [mobileSentenceIdx, setMobileSentenceIdx] = useState(0);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isMobileDevice] = useState(() => isMobile());
   const [fabOpen, setFabOpen] = useState(false);
-
-  useEffect(() => {
-    setIsMobileDevice(isMobile());
-  }, []);
 
   // Todas as refs necessÃ¡rias
   const isPlayingRef = useRef(false);
@@ -124,11 +121,11 @@ export default function PlayerTTS({ text, voiceURI }) {
     return chunks.length > 0 ? chunks : [txt.trim()];
   }
 
-  const mobileSentencesRef = useRef([]);
-  mobileSentencesRef.current = splitMobileChunks(text);
-  const [mobileSentences] = useState(() => splitMobileChunks(text));
-  // Recalcula quando texto muda:
-  const mobileSentencesLive = splitMobileChunks(text);
+  const mobileSentencesLive = useMemo(() => splitMobileChunks(text), [text]);
+  const mobileSentencesRef = useRef(mobileSentencesLive);
+  useEffect(() => {
+    mobileSentencesRef.current = mobileSentencesLive;
+  }, [mobileSentencesLive]);
 
   let paragraphs = [];
   let currentParagraph = [];
@@ -185,6 +182,21 @@ export default function PlayerTTS({ text, voiceURI }) {
     return Array.from(nodes).map(n => (n.textContent || '').trim());
   };
 
+  const getDomChunkText = (idx) => {
+    const node = sentenceListRef.current?.querySelector(`[data-seg-idx="${idx}"]`);
+    return normalizeText(node?.textContent || '');
+  };
+
+  const getCurrentChunkText = (idx) => {
+    const originalText = normalizeText(mobileSentencesRef.current[idx] || '');
+    const domText = getDomChunkText(idx);
+
+    // Browser translators may update only the paragraph currently in view.
+    // Re-read the active DOM node right before speaking it.
+    if (domText && domText !== originalText) return domText;
+    return playbackChunksRef.current[idx] || originalText;
+  };
+
   const preparePlaybackSource = () => {
     if (isMobileDevice) {
       const domChunks = buildDomChunks();
@@ -235,10 +247,7 @@ export default function PlayerTTS({ text, voiceURI }) {
       if (gen !== speakGenRef.current) return; // chamada obsoleta â€” ignorar
       if (!isPlayingRef.current || isPausedRef.current) return;
 
-      const chunks = playbackChunksRef.current && playbackChunksRef.current.length > 0
-        ? playbackChunksRef.current
-        : mobileSentencesRef.current;
-      const sentence = chunks[sIdx] || '';
+      const sentence = getCurrentChunkText(sIdx);
       if (!sentence) { advanceSentence(sIdx); return; }
 
       const utterance = new window.SpeechSynthesisUtterance(sentence);

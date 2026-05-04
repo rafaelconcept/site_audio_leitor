@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect, memo } from 'react';
 
 function isMobile() {
+  if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 }
 
@@ -13,9 +14,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const [feedback, setFeedback] = useState('');
   const [fabOpen, setFabOpen] = useState(false);
   const [tooltipIdx, setTooltipIdx] = useState(null);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-
-  useEffect(() => { setIsMobileDevice(isMobile()); }, []);
+  const [isMobileDevice] = useState(() => isMobile());
 
   const isPlayingRef = useRef(false);
   const isPausedRef = useRef(false);
@@ -135,6 +134,21 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
     return Array.from(nodes).map(n => (n.textContent || '').trim());
   };
 
+  const getDomSegmentText = (idx) => {
+    const node = segListRef.current?.querySelector(`[data-seg-idx="${idx}"]`);
+    return normalizeText(node?.textContent || '');
+  };
+
+  const getCurrentSegmentText = (idx) => {
+    const originalText = normalizeText(segmentsRef.current[idx]?.text || '');
+    const domText = getDomSegmentText(idx);
+
+    // Browser translators often update a paragraph only when it reaches the
+    // viewport. Read the active DOM node now so TTS follows that live update.
+    if (domText && domText !== originalText) return domText;
+    return playbackSegmentsRef.current[idx] || originalText;
+  };
+
   const preparePlaybackSegments = () => {
     const domSegs = buildDomSegments();
     const domJoined = domSegs.join(' ');
@@ -167,10 +181,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       if (gen !== speakGenRef.current) return;
       if (!isPlayingRef.current || isPausedRef.current) return;
 
-      const segs = playbackSegmentsRef.current && playbackSegmentsRef.current.length > 0
-        ? playbackSegmentsRef.current
-        : segmentsRef.current.map(s => s.text);
-      const sentence = segs[sIdx] || '';
+      const sentence = getCurrentSegmentText(sIdx);
       if (!sentence) { advanceSentence(sIdx); return; }
 
       const utterance = new window.SpeechSynthesisUtterance(sentence);
