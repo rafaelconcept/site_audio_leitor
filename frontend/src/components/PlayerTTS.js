@@ -171,8 +171,6 @@ export default function PlayerTTS({ text, voiceURI }) {
       isPlayingRef.current = false;
       setIsPlaying(false);
       setIsPaused(false);
-      setMobileSentenceIdx(0);
-      currentSentenceIdxRef.current = 0;
     }
   };
 
@@ -479,14 +477,14 @@ export default function PlayerTTS({ text, voiceURI }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto rounded-xl shadow-lg bg-zinc-800 text-white p-4 md:p-8 flex flex-col items-center gap-6 min-h-[400px]">
-      <div className="flex items-center gap-2 w-full justify-center">
+      <div translate="no" className="flex items-center gap-2 w-full justify-center">
         <span className={`h-3 w-3 rounded-full ${isPlaying ? (isPaused ? 'bg-yellow-400' : 'bg-blue-500') : 'bg-zinc-400'}`}></span>
         <span className="font-medium text-sm">
           {status} {isPlaying ? `${currentWord + 1}/${totalWords}` : ''}
         </span>
       </div>
       {/* Controles inline â€” sÃ³ visÃ­veis no desktop; no mobile o FAB substitui */}
-      <div className="hidden md:flex items-center gap-2 w-full justify-center">
+      <div translate="no" className="hidden md:flex items-center gap-2 w-full justify-center">
         {isPlaying && !isPaused ? (
           <button onClick={pause} className="rounded bg-yellow-400 hover:bg-yellow-500 p-2 text-black text-2xl w-12 h-12 flex items-center justify-center">&#10073;&#10073;</button>
         ) : isPlaying && isPaused ? (
@@ -511,7 +509,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                   ].join(' ')}
                 ><SegmentText html={sentence} idx={idx} /></p>
                 {tooltipIdx === idx && (
-                  <div ref={tooltipRef} className="absolute left-0 z-10 mt-1 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2">
+                  <div translate="no" ref={tooltipRef} className="absolute left-0 z-10 mt-1 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2">
                     <span className="text-sm text-zinc-300">Ler daqui?</span>
                     <button
                       onClick={() => jumpTo(idx)}
@@ -538,7 +536,7 @@ export default function PlayerTTS({ text, voiceURI }) {
                     >
                       {word}
                       {tooltipIdx === globalIdx && (
-                        <span ref={tooltipRef} className="absolute left-0 top-6 z-10 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
+                        <span translate="no" ref={tooltipRef} className="absolute left-0 top-6 z-10 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
                           <button
                             onClick={(e) => { e.stopPropagation(); jumpTo(globalIdx); }}
                             className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-md font-medium"
@@ -554,7 +552,7 @@ export default function PlayerTTS({ text, voiceURI }) {
       </div>
 
       {feedback && (
-        <div className="mt-2 flex flex-col items-center gap-2">
+        <div translate="no" className="mt-2 flex flex-col items-center gap-2">
           <span className="text-sm text-red-400">{feedback}</span>
           {isMobileDevice && (
             <button onClick={() => { isPlayingRef.current = true; isPausedRef.current = false; setIsPlaying(true); setIsPaused(false); startWatchdog(); doSpeak(currentSentenceIdxRef.current); setFeedback(""); }} className="px-4 py-2 bg-blue-600 text-white rounded">Retomar leitura</button>
@@ -564,7 +562,7 @@ export default function PlayerTTS({ text, voiceURI }) {
 
       {/* FAB flutuante canto inferior direito */}
       {isMobileDevice ? (
-        <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
+        <div translate="no" className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
           {fabOpen && (
             <div className="flex flex-col items-end gap-2">
               {isPlaying && !isPaused ? (
@@ -586,7 +584,7 @@ export default function PlayerTTS({ text, voiceURI }) {
           >&#8964;</button>
         </div>
       ) : (
-        <div className="fixed bottom-6 right-6 flex items-center gap-2 z-50">
+        <div translate="no" className="fixed bottom-6 right-6 flex items-center gap-2 z-50">
           {isPlaying && !isPaused ? (
             <button onClick={pause} className="w-14 h-14 rounded-full bg-yellow-400 shadow-lg text-black text-2xl flex items-center justify-center">&#10073;&#10073;</button>
           ) : isPlaying && isPaused ? (

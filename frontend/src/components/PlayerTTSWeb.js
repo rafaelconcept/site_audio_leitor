@@ -123,8 +123,6 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       isPlayingRef.current = false;
       setIsPlaying(false);
       setIsPaused(false);
-      setCurrentIdx(0);
-      currentIdxRef.current = 0;
     }
   };
 
@@ -279,7 +277,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   return (
     <div className="w-full max-w-4xl mx-auto rounded-xl shadow-lg bg-zinc-800 text-white p-4 md:p-8 flex flex-col items-center gap-6 min-h-[400px]">
       {/* Status */}
-      <div className="flex items-center gap-2 w-full justify-center">
+      <div translate="no" className="flex items-center gap-2 w-full justify-center">
         <span className={`h-3 w-3 rounded-full ${isPlaying ? (isPaused ? 'bg-yellow-400' : 'bg-blue-500') : 'bg-zinc-400'}`} />
         <span className="font-medium text-sm">
           {status}{isPlaying ? ` ${currentIdx + 1}/${total}` : ''}
@@ -287,7 +285,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       </div>
 
       {/* Controles inline â€” desktop */}
-      <div className="hidden md:flex items-center gap-2 w-full justify-center">
+      <div translate="no" className="hidden md:flex items-center gap-2 w-full justify-center">
         {isPlaying && !isPaused ? (
           <button onClick={pause} className="rounded bg-yellow-400 hover:bg-yellow-500 p-2 text-black text-2xl w-12 h-12 flex items-center justify-center">&#10073;&#10073;</button>
         ) : isPlaying && isPaused ? (
@@ -321,6 +319,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
               {/* Badge de link â€” navega dentro do prÃ³prio leitor */}
               {seg.href && (
                 <button
+                  translate="no"
                   onClick={e => { e.stopPropagation(); onNavigate && onNavigate(seg.href); }}
                   className="shrink-0 text-xs px-2 py-0.5 rounded bg-zinc-600 hover:bg-blue-600 text-zinc-200 hover:text-white transition whitespace-nowrap"
                   title={seg.href}
@@ -332,6 +331,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
               {/* Tooltip "Ler daqui" */}
               {tooltipIdx === idx && (
                 <div
+                  translate="no"
                   ref={tooltipRef}
                   className="absolute left-0 top-full z-10 mt-1 flex items-center gap-2 bg-zinc-900 border border-zinc-600 rounded-lg shadow-lg px-3 py-2"
                 >
@@ -350,7 +350,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       </div>
 
       {feedback && (
-        <div className="mt-2 flex flex-col items-center gap-2">
+        <div translate="no" className="mt-2 flex flex-col items-center gap-2">
           <span className="text-sm text-red-400">{feedback}</span>
           <button
             onClick={() => { isPlayingRef.current = true; isPausedRef.current = false; setIsPlaying(true); setIsPaused(false); startWatchdog(); doSpeak(currentIdxRef.current); setFeedback(''); }}
@@ -363,7 +363,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
 
       {/* FAB mobile */}
       {isMobileDevice ? (
-        <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
+        <div translate="no" className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
           {!isPlaying && !isPaused ? (
             /* Antes de tocar: sÃ³ botÃ£o play simples */
             <button
@@ -394,7 +394,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
           )}
         </div>
       ) : (
-        <div className="fixed bottom-6 right-6 flex items-center gap-2 z-50">
+        <div translate="no" className="fixed bottom-6 right-6 flex items-center gap-2 z-50">
           {isPlaying && !isPaused ? (
             <button onClick={pause} className="w-14 h-14 rounded-full bg-yellow-400 shadow-lg text-black text-2xl flex items-center justify-center">&#10073;&#10073;</button>
           ) : isPlaying && isPaused ? (
