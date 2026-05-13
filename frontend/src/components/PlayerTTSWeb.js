@@ -34,7 +34,6 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const preferDomRef = useRef(null); // null = unknown, true = dom (translated), false = original
   const playbackSegmentsRef = useRef([]);
   const lastScrollTsRef = useRef(0);
-  const unlockTimerRef = useRef(null);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -293,33 +292,13 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
 
   const unlockScreen = () => {
     if (!isMobileDevice) return;
-    if (unlockTimerRef.current) {
-      clearTimeout(unlockTimerRef.current);
-      unlockTimerRef.current = null;
-    }
     setIsLocked(false);
-  };
-
-  const startUnlockPress = () => {
-    if (!isMobileDevice || !isLocked) return;
-    if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
-    unlockTimerRef.current = setTimeout(() => {
-      unlockScreen();
-    }, 1500);
-  };
-
-  const cancelUnlockPress = () => {
-    if (unlockTimerRef.current) {
-      clearTimeout(unlockTimerRef.current);
-      unlockTimerRef.current = null;
-    }
   };
 
   useEffect(() => {
     return () => {
       stopWatchdog();
       window.speechSynthesis.cancel();
-      if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
     };
   }, []);
 
@@ -426,13 +405,10 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
           {isLocked && (
             <div className="flex flex-col items-end gap-2">
               <button
-                onPointerDown={startUnlockPress}
-                onPointerUp={cancelUnlockPress}
-                onPointerCancel={cancelUnlockPress}
-                onPointerLeave={cancelUnlockPress}
+                onClick={unlockScreen}
                 className="px-4 py-2 rounded-full bg-zinc-900/95 border border-zinc-600 text-zinc-100 text-sm shadow-lg"
               >
-                Segure 1.5s para destravar
+                Destravar tela
               </button>
               {isPlaying && (
                 <button onClick={stop} className="w-14 h-14 rounded-full bg-red-600 shadow-lg text-white text-2xl flex items-center justify-center">&#9632;</button>
@@ -502,10 +478,6 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
         <div
           className="fixed inset-0 z-40 bg-black/20 pointer-events-auto"
           aria-hidden="true"
-          onPointerDown={startUnlockPress}
-          onPointerUp={cancelUnlockPress}
-          onPointerCancel={cancelUnlockPress}
-          onPointerLeave={cancelUnlockPress}
         />
       )}
     </div>
