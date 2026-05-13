@@ -8,6 +8,7 @@ function isMobile() {
 
 // segments: Array<{ text: string, href?: string }>
 export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgress, initialIdx = 0 }) {
+  const LOCK_STORAGE_KEY = 'readerLockMode';
   const [currentIdx, setCurrentIdx] = useState(initialIdx);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -15,6 +16,7 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const [fabOpen, setFabOpen] = useState(false);
   const [tooltipIdx, setTooltipIdx] = useState(null);
   const [isMobileDevice] = useState(() => isMobile());
+  const [isLocked, setIsLocked] = useState(false);
 
   const isPlayingRef = useRef(false);
   const isPausedRef = useRef(false);
@@ -32,12 +34,26 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   const preferDomRef = useRef(null); // null = unknown, true = dom (translated), false = original
   const playbackSegmentsRef = useRef([]);
   const lastScrollTsRef = useRef(0);
+  const unlockTimerRef = useRef(null);
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   useEffect(() => { voiceURIRef.current = voiceURI; }, [voiceURI]);
   useEffect(() => { segmentsRef.current = segments; }, [segments]);
   useEffect(() => { preferDomRef.current = null; playbackSegmentsRef.current = []; }, [segments]);
+  useEffect(() => {
+    if (!isMobileDevice) return;
+    try {
+      const saved = localStorage.getItem(LOCK_STORAGE_KEY);
+      setIsLocked(saved === '1');
+    } catch {}
+  }, [isMobileDevice]);
+  useEffect(() => {
+    if (!isMobileDevice) return;
+    try {
+      localStorage.setItem(LOCK_STORAGE_KEY, isLocked ? '1' : '0');
+    } catch {}
+  }, [isLocked, isMobileDevice]);
 
   const scrollActiveToCenter = (force = false) => {
     const el = activeElementRef.current;
@@ -263,12 +279,48 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
   };
 
   const jumpTo = (idx) => {
+    if (isMobileDevice && isLocked) return;
     setTooltipIdx(null);
     play(idx);
   };
 
+  const lockScreen = () => {
+    if (!isMobileDevice) return;
+    setTooltipIdx(null);
+    setFabOpen(false);
+    setIsLocked(true);
+  };
+
+  const unlockScreen = () => {
+    if (!isMobileDevice) return;
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
+    setIsLocked(false);
+  };
+
+  const startUnlockPress = () => {
+    if (!isMobileDevice || !isLocked) return;
+    if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    unlockTimerRef.current = setTimeout(() => {
+      unlockScreen();
+    }, 1500);
+  };
+
+  const cancelUnlockPress = () => {
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
+  };
+
   useEffect(() => {
-    return () => { stopWatchdog(); window.speechSynthesis.cancel(); };
+    return () => {
+      stopWatchdog();
+      window.speechSynthesis.cancel();
+      if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    };
   }, []);
 
   const status = isPlaying ? (isPaused ? 'Paused' : 'Reading') : 'Stopped';
@@ -306,7 +358,10 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
               {/* Texto principal */}
               <p
                 ref={isActive || isBookmark ? activeElementRef : null}
-                onClick={() => setTooltipIdx(tooltipIdx === idx ? null : idx)}
+                onClick={() => {
+                  if (isMobileDevice && isLocked) return;
+                  setTooltipIdx(tooltipIdx === idx ? null : idx);
+                }}
                 data-tooltip-trigger
                 className={[
                   'flex-1 cursor-pointer rounded px-2 py-1 select-none',
@@ -320,7 +375,11 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
               {seg.href && (
                 <button
                   translate="no"
-                  onClick={e => { e.stopPropagation(); onNavigate && onNavigate(seg.href); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (isMobileDevice && isLocked) return;
+                    onNavigate && onNavigate(seg.href);
+                  }}
                   className="shrink-0 text-xs px-2 py-0.5 rounded bg-zinc-600 hover:bg-blue-600 text-zinc-200 hover:text-white transition whitespace-nowrap"
                   title={seg.href}
                 >
@@ -364,16 +423,38 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       {/* FAB mobile */}
       {isMobileDevice ? (
         <div translate="no" className="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-50">
+          {isLocked && (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onPointerDown={startUnlockPress}
+                onPointerUp={cancelUnlockPress}
+                onPointerCancel={cancelUnlockPress}
+                onPointerLeave={cancelUnlockPress}
+                onTouchStart={startUnlockPress}
+                onTouchEnd={cancelUnlockPress}
+                onTouchCancel={cancelUnlockPress}
+                className="px-4 py-2 rounded-full bg-zinc-900/95 border border-zinc-600 text-zinc-100 text-sm shadow-lg"
+              >
+                Segure 1.5s para destravar
+              </button>
+              {isPlaying && (
+                <button onClick={stop} className="w-14 h-14 rounded-full bg-red-600 shadow-lg text-white text-2xl flex items-center justify-center">&#9632;</button>
+              )}
+            </div>
+          )}
           {!isPlaying && !isPaused ? (
             /* Antes de tocar: sÃ³ botÃ£o play simples */
             <button
-              onClick={() => play(currentIdx)}
+              onClick={() => {
+                if (isLocked) return;
+                play(currentIdx);
+              }}
               className="w-14 h-14 rounded-full bg-green-500 shadow-lg text-white text-2xl flex items-center justify-center"
             >&#9654;</button>
           ) : (
             /* Durante/pausado: seta expansÃ­vel com pause/resume + stop */
             <>
-              {fabOpen && (
+              {fabOpen && !isLocked && (
                 <div className="flex flex-col items-end gap-2">
                   {isPlaying && !isPaused ? (
                     <button onClick={pause} className="w-14 h-14 rounded-full bg-yellow-400 shadow-lg text-black text-2xl flex items-center justify-center">&#10073;&#10073;</button>
@@ -383,8 +464,20 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
                   <button onClick={stop} className="w-14 h-14 rounded-full bg-red-600 shadow-lg text-white text-2xl flex items-center justify-center">&#9632;</button>
                 </div>
               )}
+              {!isLocked && (
+                <button
+                  onClick={lockScreen}
+                  className="w-12 h-12 rounded-full bg-zinc-800 shadow-lg text-white text-xl flex items-center justify-center"
+                  title="Travar tela"
+                >
+                  &#128274;
+                </button>
+              )}
               <button
-                onClick={() => setFabOpen(o => !o)}
+                onClick={() => {
+                  if (isLocked) return;
+                  setFabOpen(o => !o);
+                }}
                 className="w-12 h-12 rounded-full bg-zinc-700 shadow-lg text-white text-xl flex items-center justify-center transition-transform"
                 style={{ transform: fabOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
               >
@@ -406,6 +499,10 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
             <button onClick={stop} className="w-14 h-14 rounded-full bg-red-600 shadow-lg text-white text-2xl flex items-center justify-center">&#9632;</button>
           )}
         </div>
+      )}
+
+      {isMobileDevice && isLocked && (
+        <div className="fixed inset-0 z-40 bg-black/20 pointer-events-auto" aria-hidden="true" />
       )}
     </div>
   );

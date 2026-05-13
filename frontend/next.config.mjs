@@ -5,7 +5,7 @@ const nextConfig = {
   ...(isProd ? { output: 'export' } : {}),
   basePath: isProd ? '/site_audio_leitor' : '',
   assetPrefix: isProd ? '/site_audio_leitor' : '',
-  allowedDevOrigins: ['localhost', '127.0.0.1', '192.168.0.104', '192.168.0.106'],
+  allowedDevOrigins: ['localhost', '127.0.0.1', '192.168.0.104', '192.168.0.106', '192.168.0.107'],
   async rewrites() {
     if (isProd) return [];
     return [
