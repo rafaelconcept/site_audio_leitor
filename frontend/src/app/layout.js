@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import PWARegister from "../components/PWARegister";
+import PWAInstallButton from "../components/PWAInstallButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,16 +50,19 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-white">
         <PWARegister />
-        <nav className="w-full border-b border-zinc-800 bg-zinc-900 px-4 py-3 flex gap-6 items-center">
-          <Link href="/" className="font-semibold hover:text-blue-400 transition">
-            Inicio
-          </Link>
-          <Link href="/texto" className="font-semibold hover:text-blue-400 transition">
-            Leitor de Texto
-          </Link>
-          <Link href="/leitor" className="font-semibold hover:text-blue-400 transition">
-            Leitor de Sites
-          </Link>
+        <nav className="w-full border-b border-zinc-800 bg-zinc-900 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex gap-6 items-center">
+            <Link href="/" className="font-semibold hover:text-blue-400 transition">
+              Inicio
+            </Link>
+            <Link href="/texto" className="font-semibold hover:text-blue-400 transition">
+              Leitor de Texto
+            </Link>
+            <Link href="/leitor" className="font-semibold hover:text-blue-400 transition">
+              Leitor de Sites
+            </Link>
+          </div>
+          <PWAInstallButton />
         </nav>
         {children}
       </body>
