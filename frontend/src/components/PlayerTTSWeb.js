@@ -430,9 +430,6 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
                 onPointerUp={cancelUnlockPress}
                 onPointerCancel={cancelUnlockPress}
                 onPointerLeave={cancelUnlockPress}
-                onTouchStart={startUnlockPress}
-                onTouchEnd={cancelUnlockPress}
-                onTouchCancel={cancelUnlockPress}
                 className="px-4 py-2 rounded-full bg-zinc-900/95 border border-zinc-600 text-zinc-100 text-sm shadow-lg"
               >
                 Segure 1.5s para destravar
@@ -502,7 +499,14 @@ export default function PlayerTTSWeb({ segments, voiceURI, onNavigate, onProgres
       )}
 
       {isMobileDevice && isLocked && (
-        <div className="fixed inset-0 z-40 bg-black/20 pointer-events-auto" aria-hidden="true" />
+        <div
+          className="fixed inset-0 z-40 bg-black/20 pointer-events-auto"
+          aria-hidden="true"
+          onPointerDown={startUnlockPress}
+          onPointerUp={cancelUnlockPress}
+          onPointerCancel={cancelUnlockPress}
+          onPointerLeave={cancelUnlockPress}
+        />
       )}
     </div>
   );
